@@ -153,6 +153,10 @@ function renderResults(results) {
                             <span class="value">${result.fairOdds}</span>
                         </div>
                     </div>
+                    
+                    <div style="margin-top: 15px; text-align: center; font-weight: 600; color: #4ade80;">
+                        Probabilidad de que ocurra: ${result.probability}%
+                    </div>
                 </div>
             </div>
         `;
