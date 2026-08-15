@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValueBet Pro | Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dashboard-body">
+    <nav class="navbar glass-panel">
+        <div class="nav-brand">ValueBet <span>Pro</span></div>
+        <button id="logoutBtn" class="btn-logout">Cerrar Sesión</button>
+    </nav>
+
+    <main class="dashboard-container">
+        <!-- Panel de Control -->
+        <section class="control-panel glass-panel">
+            <h2>Analizar Nuevo Partido</h2>
+            <form id="analyzeForm" class="analyze-form">
+                <div class="input-row">
+                    <div class="input-group flex-2">
+                        <label for="matchUrl">URL de Aposta.la</label>
+                        <input type="url" id="matchUrl" placeholder="https://aposta.la/bets#event/..." required>
+                    </div>
+                    <div class="input-group flex-1">
+                        <label for="minOdds">Filtro Cuota Mínima</label>
+                        <input type="number" id="minOdds" step="0.01" min="1.01" value="1.30" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" id="analyzeBtn">
+                    <span class="btn-text">Iniciar Análisis Completo</span>
+                    <div class="loader hidden"></div>
+                </button>
+            </form>
+        </section>
+
+        <!-- Resultados -->
+        <section class="results-panel">
+            <h3>Apuestas Recomendadas (Valor Encontrado)</h3>
+            <div id="resultsGrid" class="results-grid">
+                <!-- Tarjetas de resultados inyectadas por JS -->
+                <div class="empty-state">
+                    <p>Ingresa una URL para comenzar el análisis.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

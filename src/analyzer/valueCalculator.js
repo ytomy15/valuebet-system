@@ -1,0 +1,109 @@
+/**
+ * Calcula la probabilidad de que ocurra exactamente 'k' eventos usando la Distribución de Poisson.
+ * P(k) = (e^(-lambda) * lambda^k) / k!
+ */
+function poissonProbability(lambda, k) {
+    const e = Math.E;
+    let factorialK = 1;
+    for (let i = 1; i <= k; i++) {
+        factorialK *= i;
+    }
+    return (Math.pow(e, -lambda) * Math.pow(lambda, k)) / factorialK;
+}
+
+/**
+ * Calcula la probabilidad de que haya 'MÁS DE X' eventos (Ej: Over 8.5 corners = Probabilidad de 9 o más)
+ */
+function poissonOverProbability(lambda, overLine) {
+    let cumulativeProb = 0;
+    // Calculamos la probabilidad de 0 hasta el límite de la línea
+    for (let i = 0; i <= Math.floor(overLine); i++) {
+        cumulativeProb += poissonProbability(lambda, i);
+    }
+    // La probabilidad de 'Over' es 1 - (probabilidad de que sea igual o menor)
+    return 1 - cumulativeProb;
+}
+
+/**
+ * Analiza si una cuota tiene valor utilizando los modelos avanzados.
+ * 
+ * @param {Object} bookmakerMarket - { name, selection, currentOdd }
+ * @param {Object} advancedStats - Datos extraídos de las 5 webs
+ * @returns {Object} - Objeto con los datos de valor calculado
+ */
+function checkValueBet(bookmakerMarket, advancedStats) {
+    let probability = 0;
+    let marketType = bookmakerMarket.name.toLowerCase();
+
+    // 1. MODELO PARA CÓRNERS (Usando TotalCorner y TheStatsDontLie)
+    if (marketType.includes('corner')) {
+        // Cálculo de Esperanza Matemática (Lambda)
+        // Ejemplo simplificado: (Promedio a favor local + Promedio en contra visitante) / 2
+        const expectedHomeCorners = (advancedStats.corners.homeAvgFor + advancedStats.corners.awayAvgAgainst) / 2;
+        const expectedAwayCorners = (advancedStats.corners.awayAvgFor + advancedStats.corners.homeAvgAgainst) / 2;
+        const lambdaTotalCorners = expectedHomeCorners + expectedAwayCorners; // Lambda total del partido
+
+        // Analizamos la selección. Asumimos formato "+8.5 córners"
+        const lineMatch = bookmakerMarket.selection.match(/\+?(\d+\.\d+)/);
+        if (lineMatch) {
+            const line = parseFloat(lineMatch[1]); // Ej: 8.5
+            
+            // Probabilidad pura de Poisson
+            const purePoissonProb = poissonOverProbability(lambdaTotalCorners, line);
+            
+            // Validación con TheStatsDontLie (Filtro Primario)
+            // Hacemos un promedio del Hit Rate de ambos equipos para esa línea
+            let hitRateVal = 0.5;
+            if (line === 8.5 && advancedStats.hitRates.over8_5_corners) {
+                hitRateVal = (advancedStats.hitRates.over8_5_corners.home + advancedStats.hitRates.over8_5_corners.away) / 2;
+            }
+
+            // Probabilidad final ajustada (Promedio entre Poisson puro y tendencia real)
+            probability = (purePoissonProb + hitRateVal) / 2;
+        } else {
+            probability = 0.5;
+        }
+    } 
+    // 2. MODELO PARA TARJETAS (Usando Corner-Stats y Sofascore)
+    else if (marketType.includes('tarjeta')) {
+        const avgCards = advancedStats.refereeStats.avgYellowCards;
+        const totalFouls = advancedStats.refereeStats.homeFoulsPerGame + advancedStats.refereeStats.awayFoulsPerGame;
+        
+        // Si hay muchas faltas esperadas y el árbitro es estricto, la probabilidad sube
+        const cardFactor = (totalFouls / 25) * (avgCards / 4.5); // 25 y 4.5 son baselines de liga
+        
+        // Lógica simplificada para ejemplo:
+        const lineMatch = bookmakerMarket.selection.match(/\+?(\d+\.\d+)/);
+        if (lineMatch) {
+            const line = parseFloat(lineMatch[1]);
+            // Usamos un factor simple basado en el promedio esperado del árbitro vs la línea
+            probability = avgCards > line ? 0.65 * cardFactor : 0.35 * cardFactor;
+            // Cap a 0.99
+            probability = Math.min(0.99, probability);
+        } else {
+            probability = 0.5;
+        }
+    }
+    // 3. MODELO GENÉRICO (1X2, Goles)
+    else {
+        // Aquí entraría el modelo de xG de FootyStats
+        probability = advancedStats.form.homeXG > advancedStats.form.awayXG ? 0.60 : 0.40;
+    }
+
+    // Calcular cuota justa y determinar valor
+    if (probability <= 0.05) return { value: false };
+    
+    const fairOdds = 1 / probability;
+    const hasValue = bookmakerMarket.currentOdd > fairOdds;
+
+    return {
+        market: bookmakerMarket.name,
+        recommendation: bookmakerMarket.selection,
+        odds: bookmakerMarket.currentOdd,
+        fairOdds: parseFloat(fairOdds.toFixed(2)),
+        probability: parseFloat((probability * 100).toFixed(2)),
+        value: hasValue
+    };
+}
+
+module.exports = { poissonProbability, poissonOverProbability, checkValueBet };
