@@ -53,7 +53,7 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
 
     } catch (error) {
         console.error("Error procesando imagen con Gemini:", error);
-        throw new Error("No se pudo extraer la información de la imagen");
+        throw error;
     }
 }
 
