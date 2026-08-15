@@ -1,7 +1,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 
-async function processOddsImage(imagePath, teamHome, teamAway) {
+async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
         throw new Error("Falta configurar GEMINI_API_KEY en Render");
@@ -13,7 +13,6 @@ async function processOddsImage(imagePath, teamHome, teamAway) {
     
     try {
         const imageBuffer = fs.readFileSync(imagePath);
-        const mimeType = imagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
 
         const imagePart = {
             inlineData: {

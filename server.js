@@ -37,7 +37,7 @@ app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
         }
 
         // 1. Enviar imagen a Gemini para extraer cuotas
-        const apostaData = await processOddsImage(imageFile.path, teamHome, teamAway);
+        const apostaData = await processOddsImage(imageFile.path, teamHome, teamAway, imageFile.mimetype);
 
         // Borrar imagen temporal
         const fs = require('fs');
