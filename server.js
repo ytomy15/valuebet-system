@@ -39,9 +39,9 @@ app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
         // 1. Enviar imagen a Gemini para extraer cuotas
         const apostaData = await processOddsImage(imageFile.path, teamHome, teamAway, imageFile.mimetype);
 
-        // Borrar imagen temporal
+        // Borrar imagen temporal (éxito)
         const fs = require('fs');
-        fs.unlinkSync(imageFile.path);
+        if (fs.existsSync(imageFile.path)) fs.unlinkSync(imageFile.path);
 
         if (!apostaData || !apostaData.markets) {
             return res.status(404).json({ success: false, error: "La IA no pudo extraer cuotas de la imagen" });
@@ -65,8 +65,13 @@ app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
 
         res.json({ success: true, results });
     } catch (error) {
-        console.error("Error en análisis visual:", error);
-        res.status(500).json({ success: false, error: "Error procesando la imagen con IA" });
+        console.error("Error detallado en análisis visual:", error.message || error);
+        
+        // Limpiar archivo si hubo error
+        const fs = require('fs');
+        if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+
+        res.status(500).json({ success: false, error: "Error procesando la imagen con IA: " + (error.message || "Error interno") });
     }
 });
 

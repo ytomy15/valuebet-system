@@ -42,10 +42,13 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
         const result = await model.generateContent([prompt, imagePart]);
         const responseText = result.response.text();
         
-        // Limpiar posible formato Markdown del JSON (```json ... ```)
-        let rawText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Extraer el JSON usando Expresiones Regulares por si la IA añade texto extra
+        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error("No se encontró estructura JSON en la respuesta de la IA.");
+        }
         
-        const jsonData = JSON.parse(rawText);
+        const jsonData = JSON.parse(jsonMatch[0]);
         return jsonData;
 
     } catch (error) {
