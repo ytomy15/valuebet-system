@@ -1,60 +1,64 @@
 /**
- * Módulo para orquestar la búsqueda de estadísticas especializadas en múltiples sitios.
+ * Módulo para buscar estadísticas usando extracción de texto bruto.
+ * En esta Fase 3, usamos mocks avanzados integrados para simular la recolección
+ * de las 5 webs sin sobrecargar la RAM del servidor de Render con 5 pestañas de Chrome.
  */
 
 async function fetchStats(teamHome, teamAway) {
-    console.log(`Extrayendo datos de 5 fuentes para: ${teamHome} vs ${teamAway}`);
+    console.log(`[StatsScraper] Simulando extracción web pesada para: ${teamHome} vs ${teamAway}`);
 
-    // ESTO ES UN MOCK ESTRUCTURAL.
-    // En producción, aquí se ejecutarían instancias de Puppeteer/Playwright
-    // apuntando a las URLs específicas con selectores CSS precisos.
+    // Para evitar que Render colapse abriendo 6 navegadores simultáneos (1 para Aposta, 5 para Stats),
+    // esta función retorna la estructura real cruzada necesaria para el valueCalculator,
+    // simulando que Puppeteer fue a las 5 páginas y procesó los datos con Regex.
     
     return {
-        // 1. TotalCorner: Promedios brutos para cálculo de Poisson
+        // 1. TotalCorner
         corners: {
-            homeAvgFor: 6.2,     // Promedio a favor jugando de LOCAL
-            homeAvgAgainst: 3.8, // Promedio en contra jugando de LOCAL
-            awayAvgFor: 4.5,     // Promedio a favor jugando de VISITANTE
-            awayAvgAgainst: 5.1  // Promedio en contra jugando de VISITANTE
+            homeAvgFor: 5.8,
+            homeAvgAgainst: 4.2,
+            awayAvgFor: 4.9,
+            awayAvgAgainst: 5.5
         },
         
-        // 2. Sofascore: Contexto, lesiones, H2H y Árbitro designado
+        // 2. Sofascore
         context: {
-            homeMissingPlayers: ["Delantero Estrella (Lesión)", "Defensa Central (Suspensión)"],
-            awayMissingPlayers: [],
-            h2hTrend: "El equipo local ganó 4 de los últimos 5 encuentros directos.",
+            homeMissingPlayers: ["Arquero Titular"],
+            awayMissingPlayers: ["Defensa Central"],
+            h2hTrend: "Empates frecuentes",
             refereeAssigned: "Eber Aquino"
         },
         
-        // 3. FootyStats: Forma 1X2, xG y Posesión (últimos 5 partidos)
+        // 3. FootyStats
         form: {
-            homeLast5: ["W", "W", "D", "W", "L"],
-            awayLast5: ["L", "L", "D", "L", "W"],
-            homeXG: 1.85,
-            awayXG: 0.95,
-            homePossession: 62, // %
-            awayPossession: 45  // %
+            homeLast5: ["W", "D", "W", "W", "L"],
+            awayLast5: ["D", "D", "L", "L", "W"],
+            homeXG: 1.65,
+            awayXG: 1.10,
+            homePossession: 55,
+            awayPossession: 45
         },
         
-        // 4. Corner-Stats: Base de datos arbitral cruzada con faltas de equipos
+        // 4. Corner-Stats
         refereeStats: {
-            avgYellowCards: 5.4,
-            avgRedCards: 0.3,
-            homeFoulsPerGame: 14.2,
-            awayFoulsPerGame: 16.5
+            avgYellowCards: 6.2,
+            avgRedCards: 0.5,
+            homeFoulsPerGame: 15.5,
+            awayFoulsPerGame: 14.8
         },
         
-        // 5. TheStatsDontLie: Validadores de líneas (Hit Rates) de la temporada
+        // 5. TheStatsDontLie
         hitRates: {
-            over8_5_corners: { home: 0.80, away: 0.65 }, // 80% de partidos del local superaron 8.5
-            over9_5_corners: { home: 0.60, away: 0.50 },
-            over2_5_goals: { home: 0.75, away: 0.40 }
+            over8_5_corners: { home: 0.75, away: 0.70 },
+            over9_5_corners: { home: 0.55, away: 0.50 },
+            over2_5_goals: { home: 0.60, away: 0.45 }
         }
     };
 }
 
 async function getRecentMatchHistory(matchName) {
-    const [teamHome, teamAway] = matchName.split(' vs ');
+    const teams = matchName.split(' vs ');
+    const teamHome = teams[0] || "Local";
+    const teamAway = teams[1] || "Visitante";
     return await fetchStats(teamHome, teamAway);
 }
 
