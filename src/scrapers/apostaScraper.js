@@ -46,13 +46,17 @@ async function scrapeApostaLa(targetUrl) {
         if (pageTitle && pageTitle.includes('vs')) {
             matchName = pageTitle.trim();
         } else {
-            // Buscamos en el texto bruto algo que parezca "Equipo A - Equipo B" o "Equipo A vs Equipo B"
-            const matchRegex = /([A-Za-zÑñáéíóúÁÉÍÓÚ\s]+)\s*(?:-|vs)\s*([A-Za-zÑñáéíóúÁÉÍÓÚ\s]+)/i;
+            // Buscamos en el texto bruto algo que parezca "Equipo A - Equipo B" o "Equipo A vs Equipo B" (con espacios obligatorios)
+            const matchRegex = /([A-ZÁÉÍÓÚÑ][a-záéíóúñÁÉÍÓÚÑ\s]+)\s+(?:vs|-)\s+([A-ZÁÉÍÓÚÑ][a-záéíóúñÁÉÍÓÚÑ\s]+)/i;
             const matchFound = pageText.match(matchRegex);
             if (matchFound) {
                 const team1 = matchFound[1].trim().split('\n').pop(); 
                 const team2 = matchFound[2].trim().split('\n')[0];    
-                matchName = `${team1} vs ${team2}`;
+                
+                // Filtro adicional para evitar basura: si el nombre tiene más de 30 caracteres, probablemente no sea un equipo
+                if (team1.length < 30 && team2.length < 30 && !team1.includes('GTM')) {
+                    matchName = `${team1} vs ${team2}`;
+                }
             }
         }
 
