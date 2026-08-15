@@ -21,51 +21,95 @@ analyzeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const teamHome = document.getElementById('teamHome').value;
     const teamAway = document.getElementById('teamAway').value;
-    const oddsImage = document.getElementById('oddsImage').files[0];
+    const files = document.getElementById('oddsImage').files;
     const minOdds = parseFloat(document.getElementById('minOdds').value);
 
-    if (!oddsImage) {
-        alert("Por favor sube una captura de pantalla de las cuotas");
+    if (files.length === 0) {
+        alert("Por favor sube al menos una captura de pantalla de las cuotas");
         return;
     }
-
-    const formData = new FormData();
-    formData.append('teamHome', teamHome);
-    formData.append('teamAway', teamAway);
-    formData.append('minOdds', minOdds);
-    formData.append('oddsImage', oddsImage);
 
     // UI Loading state
     btnText.textContent = "Analizando...";
     loader.classList.remove('hidden');
     analyzeBtn.disabled = true;
     resultsGrid.innerHTML = ''; // Limpiar resultados anteriores
+    
+    // UI Progress Bar
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressPercent = document.getElementById('progressPercent');
+    const progressText = document.getElementById('progressText');
+    
+    progressContainer.classList.remove('hidden');
+    progressBar.style.width = '0%';
+    progressPercent.textContent = '0%';
 
-    try {
-        const response = await fetch('/api/analyze-image', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-                // No enviar Content-Type, fetch lo pone automáticamente con el boundary para FormData
-            },
-            body: formData
-        });
+    let allResults = [];
+    let hasError = false;
 
-        const data = await response.json();
+    for (let i = 0; i < files.length; i++) {
+        progressText.textContent = `Analizando imagen ${i + 1} de ${files.length}...`;
+        
+        const formData = new FormData();
+        formData.append('teamHome', teamHome);
+        formData.append('teamAway', teamAway);
+        formData.append('minOdds', minOdds);
+        formData.append('oddsImage', files[i]);
 
-        if (data.success) {
-            renderResults(data.results);
-        } else {
-            alert(data.error || "Error al analizar la URL");
+        try {
+            const response = await fetch('/api/analyze-image', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                allResults = allResults.concat(data.results);
+            } else {
+                alert(`Error en la imagen ${i + 1}: ${data.error}`);
+                hasError = true;
+            }
+        } catch (error) {
+            alert(`Error de conexión con el servidor en la imagen ${i + 1}`);
+            hasError = true;
         }
-    } catch (error) {
-        alert("Error de conexión con el servidor");
-    } finally {
-        // UI Reset state
-        btnText.textContent = "Iniciar Análisis Completo";
-        loader.classList.add('hidden');
-        analyzeBtn.disabled = false;
+
+        // Actualizar progreso
+        const percent = Math.round(((i + 1) / files.length) * 100);
+        progressBar.style.width = `${percent}%`;
+        progressPercent.textContent = `${percent}%`;
     }
+
+    if (allResults.length > 0) {
+        // Eliminar duplicados si hay mercados repetidos en múltiples imágenes
+        const uniqueResults = [];
+        const seen = new Set();
+        for (const item of allResults) {
+            const hash = `${item.market}-${item.recommendation}`;
+            if (!seen.has(hash)) {
+                seen.add(hash);
+                uniqueResults.push(item);
+            }
+        }
+        renderResults(uniqueResults);
+    } else if (!hasError) {
+         resultsGrid.innerHTML = `
+            <div class="empty-state">
+                <p>No se encontraron apuestas con valor (Cuota Mínima: ${minOdds})</p>
+            </div>
+        `;
+    }
+
+    // UI Reset state
+    btnText.textContent = "Iniciar Análisis Completo";
+    loader.classList.add('hidden');
+    analyzeBtn.disabled = false;
+    setTimeout(() => { progressContainer.classList.add('hidden'); }, 3000);
 });
 
 function renderResults(results) {

@@ -12,6 +12,9 @@ async function fetchStats(teamHome, teamAway) {
     // simulando que Puppeteer fue a las 5 páginas y procesó los datos con Regex.
     
     return {
+        teamHome: teamHome,
+        teamAway: teamAway,
+        
         // 1. TotalCorner
         corners: {
             homeAvgFor: 5.8,

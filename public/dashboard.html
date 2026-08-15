@@ -31,7 +31,7 @@
                 <div class="input-row">
                     <div class="input-group flex-2">
                         <label for="oddsImage">Captura de Pantalla (Cuotas)</label>
-                        <input type="file" id="oddsImage" accept="image/*" required>
+                        <input type="file" id="oddsImage" accept="image/*" multiple required>
                     </div>
                     <div class="input-group flex-1">
                         <label for="minOdds">Filtro Cuota Mínima</label>
@@ -42,6 +42,15 @@
                     <span class="btn-text">Iniciar Análisis Completo</span>
                     <div class="loader hidden"></div>
                 </button>
+                <div id="progressContainer" class="hidden" style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span id="progressText" style="font-size: 0.9em; font-weight: 600;">Analizando imágenes...</span>
+                        <span id="progressPercent" style="font-size: 0.9em; font-weight: 600;">0%</span>
+                    </div>
+                    <div style="width: 100%; background-color: rgba(255, 255, 255, 0.1); border-radius: 8px; height: 10px; overflow: hidden;">
+                        <div id="progressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #4F46E5, #0ea5e9); transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
             </form>
         </section>
 

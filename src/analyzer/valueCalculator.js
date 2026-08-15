@@ -86,8 +86,66 @@ function checkValueBet(bookmakerMarket, advancedStats) {
     }
     // 3. MODELO GENÉRICO (1X2, Goles)
     else {
-        // Aquí entraría el modelo de xG de FootyStats
-        probability = advancedStats.form.homeXG > advancedStats.form.awayXG ? 0.60 : 0.40;
+        const homeXG = advancedStats.form.homeXG || 1.5;
+        const awayXG = advancedStats.form.awayXG || 1.1;
+
+        if (marketType.includes('resultado') || marketType.includes('1x2') || marketType.includes('winner') || marketType.includes('doble oportunidad')) {
+            // Poisson Bivariado simple para 1X2
+            let homeWinProb = 0;
+            let drawProb = 0;
+            let awayWinProb = 0;
+
+            for (let i = 0; i <= 7; i++) {
+                for (let j = 0; j <= 7; j++) {
+                    const prob = poissonProbability(homeXG, i) * poissonProbability(awayXG, j);
+                    if (i > j) homeWinProb += prob;
+                    else if (i === j) drawProb += prob;
+                    else awayWinProb += prob;
+                }
+            }
+
+            const selectionLower = bookmakerMarket.selection.toLowerCase();
+            const homeName = (advancedStats.teamHome || "").toLowerCase();
+            const awayName = (advancedStats.teamAway || "").toLowerCase();
+
+            if (homeName && selectionLower.includes(homeName)) {
+                probability = homeWinProb;
+            } else if (awayName && selectionLower.includes(awayName)) {
+                probability = awayWinProb;
+            } else if (selectionLower.includes('empate') || selectionLower === 'x' || selectionLower === 'draw') {
+                probability = drawProb;
+            } else if (selectionLower === '1x' || selectionLower.includes('1x')) {
+                probability = homeWinProb + drawProb;
+            } else if (selectionLower === 'x2' || selectionLower.includes('x2')) {
+                probability = awayWinProb + drawProb;
+            } else if (selectionLower === '12' || selectionLower.includes('12')) {
+                probability = homeWinProb + awayWinProb;
+            } else {
+                // Fallback de seguridad, asumimos local si no podemos parsear, pero no 1.67 clavado
+                probability = homeWinProb;
+            }
+            
+            if(probability === 0) probability = 0.33;
+
+        } else if (marketType.includes('gol') || marketType.includes('goal')) {
+            const lambdaTotalGoals = homeXG + awayXG;
+            const lineMatch = bookmakerMarket.selection.match(/\+?(\d+\.\d+)/);
+            if (lineMatch) {
+                const line = parseFloat(lineMatch[1]);
+                const overProb = poissonOverProbability(lambdaTotalGoals, line);
+                
+                if (bookmakerMarket.selection.toLowerCase().includes('más') || bookmakerMarket.selection.toLowerCase().includes('over')) {
+                    probability = overProb;
+                } else {
+                    probability = 1 - overProb; // Probabilidad de Under
+                }
+            } else {
+                probability = 0.5;
+            }
+        } else {
+            // Default estático si es un mercado totalmente desconocido
+            probability = 0.5;
+        }
     }
 
     // Calcular cuota justa y determinar valor
