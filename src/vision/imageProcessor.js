@@ -1,4 +1,4 @@
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs');
 
 async function processOddsImage(imagePath, teamHome, teamAway) {
@@ -7,14 +7,20 @@ async function processOddsImage(imagePath, teamHome, teamAway) {
         throw new Error("Falta configurar GEMINI_API_KEY en Render");
     }
 
-    const ai = new GoogleGenAI({ apiKey });
+    const genAI = new GoogleGenerativeAI(apiKey);
+    // Usamos gemini-1.5-flash que es excelente y súper rápido para imágenes
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     try {
         const imageBuffer = fs.readFileSync(imagePath);
-        const base64Image = imageBuffer.toString('base64');
-        
-        // Determinar mimetype basico (asumimos png o jpeg)
         const mimeType = imagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+
+        const imagePart = {
+            inlineData: {
+                data: imageBuffer.toString("base64"),
+                mimeType: mimeType
+            }
+        };
 
         const prompt = `
         Eres un experto en apuestas deportivas. 
@@ -34,23 +40,11 @@ async function processOddsImage(imagePath, teamHome, teamAway) {
         Asegúrate de que 'currentOdd' sea un número decimal. Si no encuentras algún mercado, omítelo o pon una cuota aproximada de lo que veas.
         `;
 
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [
-                {
-                    role: 'user',
-                    parts: [
-                        { text: prompt },
-                        { inlineData: { data: base64Image, mimeType: mimeType } }
-                    ]
-                }
-            ]
-        });
-
-        let rawText = response.text;
+        const result = await model.generateContent([prompt, imagePart]);
+        const responseText = result.response.text();
         
         // Limpiar posible formato Markdown del JSON (```json ... ```)
-        rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+        let rawText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
         
         const jsonData = JSON.parse(rawText);
         return jsonData;
