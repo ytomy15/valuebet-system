@@ -6,9 +6,14 @@ const authRoutes = require('./src/auth/auth');
 const { scrapeApostaLa } = require('./src/scrapers/apostaScraper');
 const { getRecentMatchHistory } = require('./src/scrapers/statsScraper');
 const { checkValueBet } = require('./src/analyzer/valueCalculator');
+const { processOddsImage } = require('./src/vision/imageProcessor');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Configuración de Multer para recibir imágenes en memoria o carpeta temporal
+const multer = require('multer');
+const upload = multer({ dest: 'uploads/' });
 
 // Middleware
 app.use(cors());
@@ -21,18 +26,25 @@ db.initialize();
 // Rutas de API
 app.use('/api/auth', authRoutes);
 
-// Ruta para procesar el análisis de URL
-app.post('/api/analyze', async (req, res) => {
-    const { url, minOdds } = req.body;
-    
-    if (!url) return res.status(400).json({ success: false, error: "URL es requerida" });
-
+// Ruta de Análisis por Imagen (Fase 5)
+app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
     try {
-        // 1. Extraer datos de Aposta.la
-        const apostaData = await scrapeApostaLa(url);
-        
+        const { teamHome, teamAway, minOdds = 1.30 } = req.body;
+        const imageFile = req.file;
+
+        if (!imageFile || !teamHome || !teamAway) {
+            return res.status(400).json({ success: false, error: "Faltan datos o imagen" });
+        }
+
+        // 1. Enviar imagen a Gemini para extraer cuotas
+        const apostaData = await processOddsImage(imageFile.path, teamHome, teamAway);
+
+        // Borrar imagen temporal
+        const fs = require('fs');
+        fs.unlinkSync(imageFile.path);
+
         if (!apostaData || !apostaData.markets) {
-            return res.status(404).json({ success: false, error: "No se pudieron extraer cuotas de Aposta.la" });
+            return res.status(404).json({ success: false, error: "La IA no pudo extraer cuotas de la imagen" });
         }
 
         // 2. Extraer historial estadístico
@@ -42,7 +54,6 @@ app.post('/api/analyze', async (req, res) => {
         const results = [];
         
         for (const market of apostaData.markets) {
-            // El calculador ahora espera el objeto completo de advancedStats (statsHistory)
             const valueCheck = checkValueBet(market, statsHistory);
             
             if (valueCheck.value && valueCheck.odds >= minOdds) {
@@ -54,8 +65,8 @@ app.post('/api/analyze', async (req, res) => {
 
         res.json({ success: true, results });
     } catch (error) {
-        console.error("Error en análisis:", error);
-        res.status(500).json({ success: false, error: "Error analizando la URL" });
+        console.error("Error en análisis visual:", error);
+        res.status(500).json({ success: false, error: "Error procesando la imagen con IA" });
     }
 });
 

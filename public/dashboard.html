@@ -20,8 +20,18 @@
             <form id="analyzeForm" class="analyze-form">
                 <div class="input-row">
                     <div class="input-group flex-2">
-                        <label for="matchUrl">URL de Aposta.la</label>
-                        <input type="url" id="matchUrl" placeholder="https://aposta.la/bets#event/..." required>
+                        <label for="teamHome">Equipo Local</label>
+                        <input type="text" id="teamHome" placeholder="Ej: Guaraní" required>
+                    </div>
+                    <div class="input-group flex-2">
+                        <label for="teamAway">Equipo Visitante</label>
+                        <input type="text" id="teamAway" placeholder="Ej: Rubio Ñu" required>
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group flex-2">
+                        <label for="oddsImage">Captura de Pantalla (Cuotas)</label>
+                        <input type="file" id="oddsImage" accept="image/*" required>
                     </div>
                     <div class="input-group flex-1">
                         <label for="minOdds">Filtro Cuota Mínima</label>

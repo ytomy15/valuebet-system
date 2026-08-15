@@ -19,8 +19,21 @@ const resultsGrid = document.getElementById('resultsGrid');
 
 analyzeForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const url = document.getElementById('matchUrl').value;
+    const teamHome = document.getElementById('teamHome').value;
+    const teamAway = document.getElementById('teamAway').value;
+    const oddsImage = document.getElementById('oddsImage').files[0];
     const minOdds = parseFloat(document.getElementById('minOdds').value);
+
+    if (!oddsImage) {
+        alert("Por favor sube una captura de pantalla de las cuotas");
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('teamHome', teamHome);
+    formData.append('teamAway', teamAway);
+    formData.append('minOdds', minOdds);
+    formData.append('oddsImage', oddsImage);
 
     // UI Loading state
     btnText.textContent = "Analizando...";
@@ -29,13 +42,13 @@ analyzeForm.addEventListener('submit', async (e) => {
     resultsGrid.innerHTML = ''; // Limpiar resultados anteriores
 
     try {
-        const response = await fetch('/api/analyze', {
+        const response = await fetch('/api/analyze-image', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
+                // No enviar Content-Type, fetch lo pone automáticamente con el boundary para FormData
             },
-            body: JSON.stringify({ url, minOdds })
+            body: formData
         });
 
         const data = await response.json();
