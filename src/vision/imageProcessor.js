@@ -30,18 +30,15 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
         Asegúrate de que 'currentOdd' sea un número decimal. Si no encuentras algún mercado, omítelo o pon una cuota aproximada de lo que veas.
         `;
 
-        const interaction = await ai.interactions.create({
+        const response = await ai.models.generateContent({
             model: "gemini-3.6-flash",
-            input: {
-                role: "user",
-                parts: [
-                    { text: prompt },
-                    { inlineData: { data: imageBuffer.toString("base64"), mimeType: mimeType } }
-                ]
-            }
+            contents: [
+                { text: prompt },
+                { inlineData: { data: imageBuffer.toString("base64"), mimeType: mimeType } }
+            ]
         });
 
-        const responseText = interaction.output_text;
+        const responseText = response.text;
         
         // Extraer el JSON usando Expresiones Regulares por si la IA añade texto extra
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
