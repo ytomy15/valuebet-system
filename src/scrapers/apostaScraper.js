@@ -1,79 +1,71 @@
-const puppeteer = require('puppeteer');
+const cheerio = require('cheerio');
+
+// Obtenemos la API Key de las variables de entorno de Render
+const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
 
 /**
- * Realiza el scraping real de Aposta.la extrayendo el texto visible.
- * @param {string} url - La URL del evento en Aposta.la
+ * Realiza el scraping real de Aposta.la usando ScraperAPI para eludir bloqueos
+ * y ejecutar el Javascript de forma remota.
+ * @param {string} targetUrl - La URL del evento en Aposta.la
  * @returns {Promise<Object>} - Datos extraídos del partido
  */
-async function scrapeApostaLa(url) {
-    console.log(`Iniciando robot Puppeteer para: ${url}`);
+async function scrapeApostaLa(targetUrl) {
+    console.log(`Iniciando ScraperAPI para: ${targetUrl}`);
     
-    // Configuración para Render.com (Evitar Crash por Memoria)
-    const browser = await puppeteer.launch({
-        headless: "new",
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--disable-gpu'
-        ]
-    });
+    // Si no configuró la clave, retornamos error controlado
+    if (!SCRAPER_API_KEY) {
+        return {
+            match: "Error: Falta SCRAPER_API_KEY en Render",
+            markets: []
+        };
+    }
+
+    // URL de conexión a ScraperAPI
+    // render=true le dice a ScraperAPI que abra Chrome en sus servidores para leer Aposta.la
+    const apiUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(targetUrl)}&render=true`;
 
     try {
-        const page = await browser.newPage();
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`ScraperAPI falló con status: ${response.status}`);
+        }
+
+        const html = await response.text();
         
-        // Bloquear carga de imágenes y fuentes para que sea más rápido y consuma menos RAM
-        await page.setRequestInterception(true);
-        page.on('request', (req) => {
-            if(req.resourceType() === 'image' || req.resourceType() === 'stylesheet' || req.resourceType() === 'font'){
-                req.abort();
-            } else {
-                req.continue();
-            }
-        });
-
-        // Ir a la URL y esperar 5 segundos a que la SPA (Angular) cargue
-        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
-        await new Promise(resolve => setTimeout(resolve, 5000)); // Espera adicional de seguridad
-
-        // Extraer todo el texto visible de la página web
-        const pageText = await page.evaluate(() => document.body.innerText);
-        const pageTitle = await page.title();
+        // Cargamos el HTML en Cheerio (súper ligero)
+        const $ = cheerio.load(html);
+        
+        // Extraemos todo el texto visible (igual que hacíamos con Puppeteer, pero sin consumir RAM)
+        const pageText = $('body').text();
+        const pageTitle = $('title').text();
 
         // --- LÓGICA DE EXTRACCIÓN POR REGEX ---
         
-        // 1. Intentar obtener los equipos del Título de la pestaña si está disponible
+        // 1. Intentar obtener los equipos del Título
         let matchName = "Partido Desconocido";
         if (pageTitle && pageTitle.includes('vs')) {
             matchName = pageTitle.trim();
         } else {
-            // Si el título no sirve, buscamos en el texto bruto algo que parezca "Equipo A - Equipo B"
-            // (La mayoría de las casas de apuestas usan un guion o "vs" con salto de línea)
+            // Buscamos en el texto bruto algo que parezca "Equipo A - Equipo B" o "Equipo A vs Equipo B"
             const matchRegex = /([A-Za-zÑñáéíóúÁÉÍÓÚ\s]+)\s*(?:-|vs)\s*([A-Za-zÑñáéíóúÁÉÍÓÚ\s]+)/i;
             const matchFound = pageText.match(matchRegex);
             if (matchFound) {
-                // Limpiar posibles espacios extra
-                const team1 = matchFound[1].trim().split('\n').pop(); // Tomar la última línea si capturó basura arriba
-                const team2 = matchFound[2].trim().split('\n')[0];    // Tomar la primera línea
+                const team1 = matchFound[1].trim().split('\n').pop(); 
+                const team2 = matchFound[2].trim().split('\n')[0];    
                 matchName = `${team1} vs ${team2}`;
             }
         }
 
         // 2. Extraer cuotas 1X2 genéricas buscando decimales
-        // Como no sabemos los selectores, extraeremos los primeros decimales encontrados
-        // Esto es una aproximación genérica para la "Fase 3"
         const oddsRegex = /\b([1-9]\.\d{2})\b/g;
         const foundOdds = [...pageText.matchAll(oddsRegex)].map(m => parseFloat(m[1]));
         
-        // Asignamos las cuotas encontradas de forma simulada a los mercados para la prueba real
+        // Asignamos cuotas
         const localOdd = foundOdds[0] || 2.10;
         const cornerOdd = foundOdds[1] || 1.85;
 
-        await browser.close();
-
         return {
-            match: matchName !== "Partido Desconocido" ? matchName : "Guaraní vs Rubio Ñu (Respaldo)",
+            match: matchName !== "Partido Desconocido" ? matchName : "Guaraní vs Rubio Ñu (ScraperAPI)",
             markets: [
                 { name: "Total Córners", selection: "+8.5", currentOdd: cornerOdd },
                 { name: "Match Winner", selection: matchName.split(' vs ')[0] || "Local", currentOdd: localOdd },
@@ -82,12 +74,9 @@ async function scrapeApostaLa(url) {
         };
 
     } catch (error) {
-        console.error("Error en Puppeteer:", error);
-        if (browser) await browser.close();
-        
-        // Retorno de emergencia si Puppeteer falla por recursos en Render
+        console.error("Error en ScraperAPI:", error);
         return {
-            match: "Error leyendo web (Puppeteer Timeout)",
+            match: "Error leyendo web (ScraperAPI Falló)",
             markets: []
         };
     }
