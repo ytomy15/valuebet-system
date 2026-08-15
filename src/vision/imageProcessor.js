@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenAI } = require('@google/genai');
 const fs = require('fs');
 
 async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
@@ -7,19 +7,10 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
         throw new Error("Falta configurar GEMINI_API_KEY en Render");
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    // Usamos gemini-2.5-flash, ya que la versión 1.5 ha sido descontinuada de la API de Google
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const ai = new GoogleGenAI({ apiKey });
     
     try {
         const imageBuffer = fs.readFileSync(imagePath);
-
-        const imagePart = {
-            inlineData: {
-                data: imageBuffer.toString("base64"),
-                mimeType: mimeType
-            }
-        };
 
         const prompt = `
         Eres un experto en apuestas deportivas. 
@@ -39,8 +30,15 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
         Asegúrate de que 'currentOdd' sea un número decimal. Si no encuentras algún mercado, omítelo o pon una cuota aproximada de lo que veas.
         `;
 
-        const result = await model.generateContent([prompt, imagePart]);
-        const responseText = result.response.text();
+        const interaction = await ai.interactions.create({
+            model: "gemini-3.6-flash",
+            input: [
+                prompt,
+                { inlineData: { data: imageBuffer.toString("base64"), mimeType: mimeType } }
+            ]
+        });
+
+        const responseText = interaction.output_text;
         
         // Extraer el JSON usando Expresiones Regulares por si la IA añade texto extra
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
@@ -52,7 +50,7 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
         return jsonData;
 
     } catch (error) {
-        console.error("Error procesando imagen con Gemini:", error);
+        console.error("Error procesando imagen con Gemini Interactions API:", error);
         throw error;
     }
 }
