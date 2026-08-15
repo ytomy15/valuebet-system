@@ -8,8 +8,8 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Usamos gemini-1.5-flash-latest para asegurar disponibilidad en el endpoint v1beta
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    // Usamos gemini-2.5-flash, ya que la versión 1.5 ha sido descontinuada de la API de Google
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     
     try {
         const imageBuffer = fs.readFileSync(imagePath);
