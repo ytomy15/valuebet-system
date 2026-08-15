@@ -154,12 +154,15 @@ function checkValueBet(bookmakerMarket, advancedStats) {
     const fairOdds = 1 / probability;
     const hasValue = bookmakerMarket.currentOdd > fairOdds;
 
+    const edge = (bookmakerMarket.currentOdd / fairOdds) - 1;
+
     return {
         market: bookmakerMarket.name,
         recommendation: bookmakerMarket.selection,
         odds: bookmakerMarket.currentOdd,
         fairOdds: parseFloat(fairOdds.toFixed(2)),
         probability: parseFloat((probability * 100).toFixed(2)),
+        edge: parseFloat((edge * 100).toFixed(2)), // Porcentaje de ventaja
         value: hasValue
     };
 }

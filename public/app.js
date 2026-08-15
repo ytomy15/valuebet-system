@@ -86,17 +86,27 @@ analyzeForm.addEventListener('submit', async (e) => {
     }
 
     if (allResults.length > 0) {
-        // Eliminar duplicados si hay mercados repetidos en múltiples imágenes
-        const uniqueResults = [];
-        const seen = new Set();
+        // Agrupar por mercado y seleccionar únicamente la apuesta con mayor Expected Value (Edge)
+        const bestPicksByMarket = {};
+        
         for (const item of allResults) {
-            const hash = `${item.market}-${item.recommendation}`;
-            if (!seen.has(hash)) {
-                seen.add(hash);
-                uniqueResults.push(item);
+            const marketKey = item.market.trim().toLowerCase();
+            
+            if (!bestPicksByMarket[marketKey]) {
+                bestPicksByMarket[marketKey] = item;
+            } else {
+                // Si ya existe una apuesta para este mercado, comparamos el Edge (Valor Esperado)
+                // y nos quedamos con el más alto (el más rentable matemáticamente)
+                if (item.edge > bestPicksByMarket[marketKey].edge) {
+                    bestPicksByMarket[marketKey] = item;
+                }
             }
         }
-        renderResults(uniqueResults);
+        
+        // Convertir el objeto de mejores apuestas nuevamente a un array
+        const finalResults = Object.values(bestPicksByMarket);
+        
+        renderResults(finalResults);
     } else if (!hasError) {
          resultsGrid.innerHTML = `
             <div class="empty-state">
@@ -127,7 +137,7 @@ function renderResults(results) {
             <div class="result-card glass-panel fade-in">
                 <div class="card-header">
                     <h4>${result.match}</h4>
-                    <span class="badge">Valor Detectado</span>
+                    <span class="badge">Edge: +${result.edge}%</span>
                 </div>
                 <div class="card-body">
                     <p class="market">Mercado: <strong>${result.market}</strong></p>
