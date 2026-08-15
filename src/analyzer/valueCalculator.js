@@ -35,31 +35,40 @@ function checkValueBet(bookmakerMarket, advancedStats) {
     let probability = 0;
     let marketType = bookmakerMarket.name.toLowerCase();
 
-    // 1. MODELO PARA CÓRNERS (Usando TotalCorner y TheStatsDontLie)
-    if (marketType.includes('corner')) {
-        // Cálculo de Esperanza Matemática (Lambda)
-        // Ejemplo simplificado: (Promedio a favor local + Promedio en contra visitante) / 2
+    // 1. MODELO PARA CÓRNERS
+    if (marketType.includes('corner') || marketType.includes('córner')) {
+        const homeName = (advancedStats.teamHome || "local").toLowerCase();
+        const awayName = (advancedStats.teamAway || "visitante").toLowerCase();
+        
+        // Paso 1 y 2: Determinar Esperanza Matemática (Lambda)
         const expectedHomeCorners = (advancedStats.corners.homeAvgFor + advancedStats.corners.awayAvgAgainst) / 2;
         const expectedAwayCorners = (advancedStats.corners.awayAvgFor + advancedStats.corners.homeAvgAgainst) / 2;
-        const lambdaTotalCorners = expectedHomeCorners + expectedAwayCorners; // Lambda total del partido
+        
+        let lambda = 0;
+        
+        // Detección inteligente del tipo de mercado
+        if (marketType.includes(homeName)) {
+            lambda = expectedHomeCorners;
+        } else if (marketType.includes(awayName)) {
+            lambda = expectedAwayCorners;
+        } else {
+            // Asumimos Total Córners
+            lambda = expectedHomeCorners + expectedAwayCorners;
+        }
 
-        // Analizamos la selección. Asumimos formato "+8.5 córners"
+        // Analizamos la selección. Asumimos formato "+8.5" o "Más de 4.5"
         const lineMatch = bookmakerMarket.selection.match(/\+?(\d+\.\d+)/);
         if (lineMatch) {
-            const line = parseFloat(lineMatch[1]); // Ej: 8.5
+            const line = parseFloat(lineMatch[1]);
             
-            // Probabilidad pura de Poisson
-            const purePoissonProb = poissonOverProbability(lambdaTotalCorners, line);
+            // Paso 3: Probabilidad Real (Poisson)
+            const overProb = poissonOverProbability(lambda, line);
             
-            // Validación con TheStatsDontLie (Filtro Primario)
-            // Hacemos un promedio del Hit Rate de ambos equipos para esa línea
-            let hitRateVal = 0.5;
-            if (line === 8.5 && advancedStats.hitRates.over8_5_corners) {
-                hitRateVal = (advancedStats.hitRates.over8_5_corners.home + advancedStats.hitRates.over8_5_corners.away) / 2;
+            if (bookmakerMarket.selection.toLowerCase().includes('menos') || bookmakerMarket.selection.toLowerCase().includes('under') || bookmakerMarket.selection.includes('-')) {
+                probability = 1 - overProb;
+            } else {
+                probability = overProb;
             }
-
-            // Probabilidad final ajustada (Promedio entre Poisson puro y tendencia real)
-            probability = (purePoissonProb + hitRateVal) / 2;
         } else {
             probability = 0.5;
         }
