@@ -42,10 +42,8 @@ app.post('/api/analyze', async (req, res) => {
         const results = [];
         
         for (const market of apostaData.markets) {
-            // Buscamos el historial que corresponda a este mercado (simplificado)
-            const historyData = statsHistory[market.selection] || [0,0,0,0,0,0,0,0,0,0]; 
-            
-            const valueCheck = checkValueBet(market, historyData);
+            // El calculador ahora espera el objeto completo de advancedStats (statsHistory)
+            const valueCheck = checkValueBet(market, statsHistory);
             
             if (valueCheck.value && valueCheck.odds >= minOdds) {
                 valueCheck.match = apostaData.match;
