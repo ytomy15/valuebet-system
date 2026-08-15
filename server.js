@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const db = require('./src/database/db');
 const authRoutes = require('./src/auth/auth');
-const { scrapeApostaLa } = require('./src/scrapers/apostaScraper');
+
 const { getRecentMatchHistory } = require('./src/scrapers/statsScraper');
 const { checkValueBet } = require('./src/analyzer/valueCalculator');
 const { processOddsImage } = require('./src/vision/imageProcessor');
