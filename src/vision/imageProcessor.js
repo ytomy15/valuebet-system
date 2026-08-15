@@ -32,10 +32,13 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
 
         const interaction = await ai.interactions.create({
             model: "gemini-3.6-flash",
-            input: [
-                prompt,
-                { inlineData: { data: imageBuffer.toString("base64"), mimeType: mimeType } }
-            ]
+            input: {
+                role: "user",
+                parts: [
+                    { text: prompt },
+                    { inlineData: { data: imageBuffer.toString("base64"), mimeType: mimeType } }
+                ]
+            }
         });
 
         const responseText = interaction.output_text;
