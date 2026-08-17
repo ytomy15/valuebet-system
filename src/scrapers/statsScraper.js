@@ -13,7 +13,7 @@ function getFallbackStats(teamHome, teamAway) {
     return {
         teamHome: teamHome,
         teamAway: teamAway,
-        corners: { homeAvgFor: 5.0, homeAvgAgainst: 5.0, awayAvgFor: 5.0, awayAvgAgainst: 5.0 },
+        corners: { homeAvgFor: 12.0, homeAvgAgainst: 2.0, awayAvgFor: 10.0, awayAvgAgainst: 3.0 },
         context: { homeMissingPlayers: [], awayMissingPlayers: [], h2hTrend: "Neutral", refereeAssigned: "Desconocido" },
         form: { homeLast5: ["D","D","D","D","D"], awayLast5: ["D","D","D","D","D"], homeXG: 1.3, awayXG: 1.3, homePossession: 50, awayPossession: 50 },
         refereeStats: { avgYellowCards: 4.5, avgRedCards: 0.2, homeFoulsPerGame: 12.0, awayFoulsPerGame: 12.0 },
