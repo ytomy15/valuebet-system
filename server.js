@@ -44,8 +44,11 @@ app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
         const fs = require('fs');
         if (fs.existsSync(imageFile.path)) fs.unlinkSync(imageFile.path);
 
-        if (!apostaData || !apostaData.markets) {
-            return res.status(404).json({ success: false, error: "La IA no pudo extraer cuotas de la imagen" });
+        if (!apostaData || !apostaData.match || !apostaData.markets) {
+            return res.status(500).json({ 
+                success: false, 
+                error: "Error de IA: Límite de cuota excedido o la imagen no pudo ser procesada. Por favor, intenta con otra cuenta o más tarde." 
+            });
         }
 
         // 2. Extraer historial estadístico
