@@ -61,15 +61,16 @@ app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
             
             // Generar explicación cuantitativa para la apuesta
             valueCheck.explanation = await generateBetExplanation(valueCheck);
-            
-            if (valueCheck.value && valueCheck.odds >= minOdds) {
-                results.push(valueCheck);
-            } else {
-                results.push(valueCheck);
-            }
+            results.push(valueCheck);
         }
 
-        res.json({ success: true, results });
+        // Filtro de Value Bets (Solo valor positivo, ordenado por edge, max 2 resultados)
+        const finalResults = results
+            .filter(r => r.value === true && r.edge > 0)
+            .sort((a, b) => b.edge - a.edge)
+            .slice(0, 2);
+
+        res.json({ success: true, results: finalResults });
     } catch (error) {
         console.error("Error detallado en análisis visual:", error.message || error);
         
