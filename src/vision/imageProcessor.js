@@ -34,15 +34,30 @@ async function processOddsImage(imagePath, teamHome, teamAway, mimeType) {
         }
         `;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
-            contents: [
-                { text: prompt },
-                { inlineData: { data: imageBuffer.toString("base64"), mimeType: mimeType } }
-            ]
-        });
+        const delay = (ms) => new Promise(res => setTimeout(res, ms));
+        const maxRetries = 3;
+        let responseText = "";
 
-        const responseText = response.text;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await ai.models.generateContent({
+                    model: "gemini-3.6-flash",
+                    contents: [
+                        { text: prompt },
+                        { inlineData: { data: imageBuffer.toString("base64"), mimeType: mimeType } }
+                    ]
+                });
+                responseText = response.text;
+                break; // Exit loop on success
+            } catch (err) {
+                console.warn(`[Intento ${attempt}/${maxRetries}] Falló la API de Gemini: ${err.message}`);
+                if (attempt === maxRetries) {
+                    throw new Error(`Error 429: Límite de IA excedido tras 3 intentos. Detalle: ${err.message}`);
+                }
+                // Esperar 5 segundos antes de reintentar
+                await delay(5000);
+            }
+        }
         
         // Extraer el JSON usando Expresiones Regulares por si la IA añade texto extra
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);

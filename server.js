@@ -77,7 +77,7 @@ app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
         const fs = require('fs');
         if (req.file && fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
-        res.status(500).json({ success: false, error: "Error procesando la imagen con IA: " + (error.message || "Error interno") });
+        res.status(500).json({ success: false, error: error.message || "Error interno del servidor" });
     }
 });
 
