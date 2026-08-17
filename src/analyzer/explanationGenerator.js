@@ -1,61 +1,23 @@
-const { GoogleGenAI } = require('@google/genai');
-
 async function generateBetExplanation(valueCheckData) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-        throw new Error("Falta configurar GEMINI_API_KEY en Render");
+    const { match, market, value, odds, fairOdds, probability, edge } = valueCheckData;
+
+    // Formatear porcentajes y decimales
+    const probPercent = probability ? (probability * 100).toFixed(2) : "N/A";
+    const edgePercent = edge ? (edge * 100).toFixed(2) : "N/A";
+    const fOdds = fairOdds ? fairOdds.toFixed(2) : "N/A";
+
+    let explanation = `Análisis para ${match} (${market}):\n\n`;
+    explanation += `La ecuación fundamental del sistema es: EV = (Probabilidad Real x Cuota Ofrecida) - 1.\n`;
+    explanation += `Basado en los datos estadísticos extraídos, la probabilidad real de que este evento ocurra es del ${probPercent}% (lo que equivale a una Cuota Justa de ${fOdds}).\n`;
+    explanation += `La casa de apuestas está ofreciendo una cuota de ${odds}.\n\n`;
+
+    if (value && edge > 0) {
+        explanation += `Decisión: RECOMENDADA. Al aplicar la fórmula, obtenemos un "Edge" (ventaja matemática) positivo del ${edgePercent}%. Esta cuota tiene valor a largo plazo.`;
+    } else {
+        explanation += `Decisión: RECHAZADA. El EV (Expected Value) calculado es negativo o nulo, lo que indica que la cuota ofrecida (${odds}) es peor que la cuota justa matemática (${fOdds}). Apostar a esta cuota generará pérdidas a largo plazo.`;
     }
 
-    const ai = new GoogleGenAI({ apiKey });
-
-    const prompt = `
-    Rol: Actúas como un analista cuantitativo de apuestas deportivas. Tu objetivo es explicarle al usuario final por qué el sistema detectó (o rechazó) una Value Bet, basándote ESTRICTAMENTE en los datos estadísticos y matemáticos que te proporcionará el sistema.
-    
-    Metodología de Comunicación:
-    Uso de Datos: Utiliza únicamente las probabilidades reales, cuotas justas y estadísticas que te paso en el bloque de datos. No inventes rachas ni asumas contextos tácticos externos.
-    
-    Explicación del Valor: Explica el hallazgo utilizando la ecuación fundamental del sistema: EV = (Probabilidad Real x Cuota Ofrecida) - 1
-    
-    Tono: Profesional, directo, objetivo y sin falsas promesas. Deja claro que es una probabilidad matemática, no una garantía.
-    
-    Decisión: Si el sistema te indica que el EV es negativo, desaconseja la apuesta tajantemente. Si es positivo, recomiéndala destacando el "Edge" (ventaja matemática).
-
-    Bloque de datos:
-    ${JSON.stringify(valueCheckData, null, 2)}
-    `;
-
-    // Lógica de Reintentos (Retry Logic) para evadir el Error 429
-    let retries = 2;
-
-    while (retries >= 0) {
-        try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: [
-                    { text: prompt }
-                ]
-            });
-
-            return response.text;
-
-        } catch (error) {
-            // Verificamos si el error es por límite de cuota (Rate Limit)
-            const isRateLimit = error.status === 429 || (error.message && error.message.includes('429'));
-
-            if (isRateLimit && retries > 0) {
-                console.warn(`[Gemini API] Error 429 detectado. Esperando 50 segundos... (Reintentos restantes: ${retries})`);
-                // Pausamos la ejecución exactamente 50 segundos
-                await new Promise(resolve => setTimeout(resolve, 50000));
-                retries--;
-            } else if (isRateLimit && retries === 0) {
-                console.error("[Gemini API] Límite de cuota agotado tras reintentos.");
-                return "Se ha alcanzado el límite de análisis gratuitos de la IA por el momento. Por favor, revisa los datos numéricos arriba.";
-            } else {
-                console.error("Error generando explicación de la apuesta con Gemini:", error);
-                return "No se pudo generar la explicación cuantitativa en este momento debido a un error de servicio.";
-            }
-        }
-    }
+    return explanation;
 }
 
 module.exports = { generateBetExplanation };
