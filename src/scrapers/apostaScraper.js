@@ -60,13 +60,17 @@ async function scrapeApostaLa(targetUrl) {
             }
         }
 
-        // 2. Extraer cuotas 1X2 genéricas buscando decimales
-        const oddsRegex = /\b([1-9]\.\d{2})\b/g;
-        const foundOdds = [...pageText.matchAll(oddsRegex)].map(m => parseFloat(m[1]));
+        // 2. Extraer cuotas 1X2 apuntando directamente al DOM con Cheerio
+        let foundOdds = [];
+        // Buscamos iterando sobre clases comunes de botones de cuotas o selectores de mercado
+        $('.odds-button, .market-selection, button[data-odd], span.odd-value, .odd').each((i, el) => {
+            const val = parseFloat($(el).text().trim());
+            if (!isNaN(val)) foundOdds.push(val);
+        });
         
-        // Asignamos cuotas
-        const localOdd = foundOdds[0] || 2.10;
-        const cornerOdd = foundOdds[1] || 1.85;
+        // Asignamos cuotas con manejo de errores estricto (null en vez de inventar)
+        const localOdd = foundOdds.length > 0 ? foundOdds[0] : null;
+        const cornerOdd = foundOdds.length > 1 ? foundOdds[1] : null;
 
         return {
             match: matchName !== "Partido Desconocido" ? matchName : "Guaraní vs Rubio Ñu (ScraperAPI)",

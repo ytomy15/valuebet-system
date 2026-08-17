@@ -20,7 +20,7 @@ async function fetchStats(teamHome, teamAway) {
     const prompt = `
     Eres un analista de datos de fútbol experto. Busca la información más reciente de la temporada actual sobre estos equipos: ${teamHome} (Local) y ${teamAway} (Visitante).
     Utiliza como referencia los datos que encontrarías en FootyStats, Sofascore, Corner-Stats y TheStatsDontLie.
-    Si no encuentras datos exactos al 100%, realiza una estimación lo más precisa posible basada en el historial y nivel de ambos equipos.
+    REGLA INQUEBRANTABLE: Si no encuentras datos estadísticos exactos, numéricos y verificables para una métrica específica, debes asignarle ESTRICTAMENTE el valor null en el JSON. Tienes TOTALMENTE PROHIBIDO realizar estimaciones tácticas, proyecciones probabilísticas o rellenar huecos con deducciones históricas.
 
     Devuelve ÚNICAMENTE un JSON válido con este formato exacto:
     {
