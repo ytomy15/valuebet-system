@@ -136,3 +136,96 @@ body {
     from { opacity: 0; transform: translateY(20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* --- Resultados y Explicaciones --- */
+.results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.result-card {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.result-card.rejected {
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    background: rgba(239, 68, 68, 0.05);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.8rem;
+}
+
+.badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #4ade80;
+    padding: 0.3rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+
+.badge.negative {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.odds-compare {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.odd-box {
+    background: rgba(15, 23, 42, 0.5);
+    padding: 0.8rem;
+    border-radius: 8px;
+    flex: 1;
+    text-align: center;
+}
+
+.odd-box span {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.odd-box .value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+    margin-top: 0.3rem;
+}
+
+.odd-box .value.success {
+    color: #4ade80;
+}
+
+/* AI Explanation Box */
+.explanation-box {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-left: 4px solid var(--primary);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #e2e8f0;
+}
+
+.explanation-box h5 {
+    color: var(--primary);
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}

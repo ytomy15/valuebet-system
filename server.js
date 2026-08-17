@@ -7,6 +7,7 @@ const authRoutes = require('./src/auth/auth');
 const { getRecentMatchHistory } = require('./src/scrapers/statsScraper');
 const { checkValueBet } = require('./src/analyzer/valueCalculator');
 const { processOddsImage } = require('./src/vision/imageProcessor');
+const { generateBetExplanation } = require('./src/analyzer/explanationGenerator');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -50,15 +51,20 @@ app.post('/api/analyze-image', upload.single('oddsImage'), async (req, res) => {
         // 2. Extraer historial estadístico
         const statsHistory = await getRecentMatchHistory(apostaData.match);
 
-        // 3. Calcular Valor
+        // 3. Calcular Valor y Explicación
         const results = [];
         
         for (const market of apostaData.markets) {
             const valueCheck = checkValueBet(market, statsHistory);
+            valueCheck.match = apostaData.match;
+            valueCheck.market = market.name;
+            
+            // Generar explicación cuantitativa para la apuesta
+            valueCheck.explanation = await generateBetExplanation(valueCheck);
             
             if (valueCheck.value && valueCheck.odds >= minOdds) {
-                valueCheck.match = apostaData.match;
-                valueCheck.market = market.name;
+                results.push(valueCheck);
+            } else {
                 results.push(valueCheck);
             }
         }

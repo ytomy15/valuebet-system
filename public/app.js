@@ -86,31 +86,13 @@ analyzeForm.addEventListener('submit', async (e) => {
     }
 
     if (allResults.length > 0) {
-        // Agrupar por mercado y seleccionar únicamente la apuesta con mayor Expected Value (Edge)
-        const bestPicksByMarket = {};
-        
-        for (const item of allResults) {
-            const marketKey = item.market.trim().toLowerCase();
-            
-            if (!bestPicksByMarket[marketKey]) {
-                bestPicksByMarket[marketKey] = item;
-            } else {
-                // Si ya existe una apuesta para este mercado, comparamos el Edge (Valor Esperado)
-                // y nos quedamos con el más alto (el más rentable matemáticamente)
-                if (item.edge > bestPicksByMarket[marketKey].edge) {
-                    bestPicksByMarket[marketKey] = item;
-                }
-            }
-        }
-        
-        // Convertir el objeto de mejores apuestas nuevamente a un array
-        const finalResults = Object.values(bestPicksByMarket);
-        
-        renderResults(finalResults);
+        // Mostrar todos los resultados analizados, ordenados por Edge (mayor a menor)
+        const sortedResults = allResults.sort((a, b) => b.edge - a.edge);
+        renderResults(sortedResults);
     } else if (!hasError) {
          resultsGrid.innerHTML = `
             <div class="empty-state">
-                <p>No se encontraron apuestas con valor (Cuota Mínima: ${minOdds})</p>
+                <p>No se extrajeron apuestas de la imagen.</p>
             </div>
         `;
     }
@@ -133,11 +115,17 @@ function renderResults(results) {
 
     let html = '';
     results.forEach(result => {
+        const isValueBet = result.value;
+        const cardClass = isValueBet ? 'result-card glass-panel fade-in' : 'result-card glass-panel fade-in rejected';
+        const badgeClass = isValueBet ? 'badge' : 'badge negative';
+        const edgeSign = result.edge > 0 ? '+' : '';
+        const mdToHtml = text => text ? text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') : '';
+
         html += `
-            <div class="result-card glass-panel fade-in">
+            <div class="${cardClass}">
                 <div class="card-header">
                     <h4>${result.match}</h4>
-                    <span class="badge">Edge: +${result.edge}%</span>
+                    <span class="${badgeClass}">Edge: ${edgeSign}${result.edge}%</span>
                 </div>
                 <div class="card-body">
                     <p class="market">Mercado: <strong>${result.market}</strong></p>
@@ -146,7 +134,7 @@ function renderResults(results) {
                     <div class="odds-compare">
                         <div class="odd-box">
                             <span>Cuota Aposta.la</span>
-                            <span class="value success">${result.odds}</span>
+                            <span class="value ${isValueBet ? 'success' : ''}">${result.odds}</span>
                         </div>
                         <div class="odd-box">
                             <span>Cuota Real (Stats)</span>
@@ -154,9 +142,16 @@ function renderResults(results) {
                         </div>
                     </div>
                     
-                    <div style="margin-top: 15px; text-align: center; font-weight: 600; color: #4ade80;">
+                    <div style="margin-top: 15px; text-align: center; font-weight: 600; color: ${isValueBet ? '#4ade80' : '#f87171'};">
                         Probabilidad de que ocurra: ${result.probability}%
                     </div>
+                    
+                    ${result.explanation ? `
+                    <div class="explanation-box">
+                        <h5>Análisis Cuantitativo</h5>
+                        <p>${mdToHtml(result.explanation)}</p>
+                    </div>
+                    ` : ''}
                 </div>
             </div>
         `;
