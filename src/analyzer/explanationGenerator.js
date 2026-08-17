@@ -26,18 +26,29 @@ async function generateBetExplanation(valueCheckData) {
         ${JSON.stringify(valueCheckData, null, 2)}
         `;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3.6-flash",
-            contents: [
-                { text: prompt }
-            ]
-        });
+        const delay = (ms) => new Promise(res => setTimeout(res, ms));
+        const maxRetries = 2;
 
-        return response.text;
-    } catch (error) {
-        console.error("Error generando explicación de la apuesta con Gemini:", error);
-        return "No se pudo generar la explicación cuantitativa en este momento debido a un error de servicio.";
-    }
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await ai.models.generateContent({
+                    model: "gemini-3.6-flash",
+                    contents: [
+                        { text: prompt }
+                    ]
+                });
+                return response.text;
+            } catch (error) {
+                console.error(`Error generando explicación de la apuesta con Gemini (Intento ${attempt + 1}):`, error.message);
+                
+                if (attempt === maxRetries) {
+                    return "Se ha alcanzado el límite de análisis gratuitos de la IA por el momento. Por favor, revisa los datos numéricos arriba.";
+                }
+                
+                console.warn("Pausando ejecución durante 50 segundos por límite de cuota (429)...");
+                await delay(50000);
+            }
+        }
 }
 
 module.exports = { generateBetExplanation };
