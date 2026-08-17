@@ -63,7 +63,7 @@ async function fetchStats(teamHome, teamAway) {
 
     try {
         const response = await ai.models.generateContent({
-            model: "gemini-1.5-flash",
+            model: "gemini-2.5-flash",
             contents: [{ text: prompt }]
         });
 
